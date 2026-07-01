@@ -84,15 +84,17 @@ TrelloPowerUp.initialize({
 
   'card-back-section': function (t, options) {
     return getBoardFields(t).then(function (fields) {
-      return {
-        title: 'Custom Fields',
-        icon: GRAY_ICON,
-        content: {
-          type: 'iframe',
-          url: BASE_URL + 'card-back-section.html',
-          height: Math.max(120, 40 + fields.length * 60)
-        }
-      };
+      return t.signUrl(BASE_URL + 'card-back-section.html').then(function (signedUrl) {
+        return {
+          title: 'Custom Fields',
+          icon: GRAY_ICON,
+          content: {
+            type: 'iframe',
+            url: signedUrl,
+            height: Math.max(120, 40 + fields.length * 60)
+          }
+        };
+      });
     });
   },
 
