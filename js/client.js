@@ -1,7 +1,8 @@
 /* global TrelloPowerUp */
 
-var GRAY_ICON = './images/icon-gray.svg';
-var WHITE_ICON = './images/icon-white.svg';
+var BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+var GRAY_ICON = BASE_URL + 'images/icon-gray.svg';
+var WHITE_ICON = BASE_URL + 'images/icon-white.svg';
 
 var FIELD_TYPES = {
   text: { label: 'Text', default: '' },
@@ -53,7 +54,7 @@ TrelloPowerUp.initialize({
       callback: function (t) {
         return t.popup({
           title: 'Custom Fields Settings',
-          url: './settings.html',
+          url: BASE_URL + 'settings.html',
           height: 500
         });
       }
@@ -67,7 +68,7 @@ TrelloPowerUp.initialize({
         icon: GRAY_ICON,
         content: {
           type: 'iframe',
-          url: './card-back-section.html',
+          url: BASE_URL + 'card-back-section.html',
           height: Math.max(120, 40 + fields.length * 60)
         }
       };
@@ -83,12 +84,14 @@ TrelloPowerUp.initialize({
       fields.forEach(function (field) {
         var display = formatFieldValue(field, values[field.id]);
         if (display) {
-          badges.push({
-            icon: field.type === 'checkbox' ? GRAY_ICON : null,
+          var badge = {
             text: field.name + ': ' + display,
-            color: field.type === 'checkbox' && values[field.id] ? 'green' : null,
             refresh: 30
-          });
+          };
+          if (field.type === 'checkbox' && values[field.id]) {
+            badge.color = 'green';
+          }
+          badges.push(badge);
         }
       });
 
@@ -99,7 +102,7 @@ TrelloPowerUp.initialize({
   'show-settings': function (t, options) {
     return t.popup({
       title: 'Custom Fields Settings',
-      url: './settings.html',
+      url: BASE_URL + 'settings.html',
       height: 500
     });
   }
