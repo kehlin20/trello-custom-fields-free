@@ -3,241 +3,179 @@
   <head>
     <meta charset="utf-8" />
     <title>Custom Fields</title>
-    <link rel="stylesheet" href="https://kehlin20.github.io/trello-custom-fields-free/css/styles.css" />
+    <link rel="stylesheet" href="./css/styles.css" />
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <style>
-      body {
-        background: #f4f5f7;
-        color: #172b4d;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 12px;
-        margin: 0;
-      }
-      .loading, .error, .empty-state {
-        padding: 12px;
-        border-radius: 3px;
-        font-size: 14px;
-      }
-      .loading {
-        background: #e4f0f6;
-        color: #0079bf;
-      }
-      .error {
-        background: #f5d3d0;
-        color: #c0392b;
-      }
-      .empty-state {
-        background: #ebecf0;
-        color: #5e6c84;
-      }
-      .card-field {
-        margin-bottom: 12px;
-      }
-      .card-field label {
-        display: block;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: #5e6c84;
-        margin-bottom: 4px;
-      }
-      .card-field input,
-      .card-field select {
-        width: 100%;
-        padding: 6px 8px;
-        border: 2px solid #dfe1e6;
-        border-radius: 3px;
-        font-size: 14px;
-        box-sizing: border-box;
-      }
-      .card-field input:focus,
-      .card-field select:focus {
-        outline: none;
-        border-color: #0079bf;
-      }
-    </style>
   </head>
   <body>
-    <div id="fieldsContainer">
-      <div class="loading">Loading custom fields...</div>
-    </div>
+    <div id="fieldsContainer"></div>
 
     <script>
-      window.onerror = function (msg, url, line) {
-        var container = document.getElementById('fieldsContainer');
-        if (container) {
-          container.innerHTML = '<div class="error">Error: ' + msg + ' (line ' + line + ')</div>';
+      var t = TrelloPowerUp.iframe();
+
+      function parseDescription(desc) {
+        if (!desc) return {};
+        var match = desc.match(/<!-- CUSTOM_FIELDS_START -->([\s\S]*?)<!-- CUSTOM_FIELDS_END -->/);
+        if (!match) return {};
+        try {
+          return JSON.parse(match[1]);
+        } catch (e) {
+          return {};
         }
-      };
+      }
 
-      try {
-        var t = TrelloPowerUp.iframe();
-
-        function loadBoardFields() {
-          return t.get('board', 'shared', 'customFields', []);
-        }
-
-        function loadCardValues() {
-          return t.get('card', 'shared', 'customFieldValues', {});
-        }
-
-        function saveCardValue(fieldId, value) {
-          return loadCardValues().then(function (values) {
-            values[fieldId] = value;
-            return t.set('card', 'shared', 'customFieldValues', values);
-          });
-        }
-
-        function createInput(field, currentValue) {
-          var container = document.createElement('div');
-          container.className = 'card-field';
-
-          var label = document.createElement('label');
-          label.textContent = field.name;
-          container.appendChild(label);
-
-          var input;
-
-          switch (field.type) {
-            case 'checkbox':
-              input = document.createElement('input');
-              input.type = 'checkbox';
-              input.checked = !!currentValue;
-              input.addEventListener('change', function () {
-                saveCardValue(field.id, input.checked).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
-              break;
-
-            case 'dropdown':
-              input = document.createElement('select');
-              var emptyOption = document.createElement('option');
-              emptyOption.value = '';
-              emptyOption.textContent = '-- Select --';
-              input.appendChild(emptyOption);
-              (field.options || []).forEach(function (option) {
-                var opt = document.createElement('option');
-                opt.value = option.id;
-                opt.textContent = option.label;
-                if (currentValue === option.id) {
-                  opt.selected = true;
-                }
-                input.appendChild(opt);
-              });
-              input.addEventListener('change', function () {
-                saveCardValue(field.id, input.value).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
-              break;
-
-            case 'date':
-              input = document.createElement('input');
-              input.type = 'date';
-              input.value = currentValue ? currentValue.substr(0, 10) : '';
-              input.addEventListener('change', function () {
-                var val = input.value ? new Date(input.value).toISOString() : null;
-                saveCardValue(field.id, val).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
-              break;
-
-            case 'number':
-              input = document.createElement('input');
-              input.type = 'number';
-              input.value = currentValue !== undefined && currentValue !== null ? currentValue : '';
-              input.addEventListener('change', function () {
-                var val = input.value === '' ? null : parseFloat(input.value);
-                saveCardValue(field.id, val).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
-              break;
-
-            case 'url':
-              input = document.createElement('input');
-              input.type = 'url';
-              input.placeholder = 'https://example.com';
-              input.value = currentValue || '';
-              input.addEventListener('change', function () {
-                saveCardValue(field.id, input.value).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
-              break;
-
-            default: // text
-              input = document.createElement('input');
-              input.type = 'text';
-              input.value = currentValue || '';
-              input.addEventListener('change', function () {
-                saveCardValue(field.id, input.value).then(function () {
-                  t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
-                });
-              });
+      function formatDescription(desc, fieldValues) {
+        var json = JSON.stringify(fieldValues, null, 2);
+        var block = '\n\n<!-- CUSTOM_FIELDS_START -->\n' + json + '\n<!-- CUSTOM_FIELDS_END -->\n';
+        
+        // Remove existing block if present
+        var cleaned = desc ? desc.replace(/<!-- CUSTOM_FIELDS_START -->[\s\S]*?<!-- CUSTOM_FIELDS_END -->/g, '').trim() : '';
+        
+        // Add formatted display
+        var display = '\n\n## Custom Fields\n\n';
+        Object.keys(fieldValues).forEach(function(fieldId) {
+          var value = fieldValues[fieldId];
+          if (value !== null && value !== undefined && value !== '') {
+            display += '- **' + fieldId + '**: ' + value + '\n';
           }
+        });
+        
+        return cleaned + display + block;
+      }
 
-          container.appendChild(input);
-          return container;
-        }
+      function loadBoardFields() {
+        return t.get('board', 'shared', 'customFields', []);
+      }
 
-        function safeSizeTo() {
-          try {
-            var promise = t.sizeTo('#fieldsContainer');
-            if (promise && typeof promise.done === 'function') {
-              promise.done();
-            }
-          } catch (e) {
-            // ignore sizing errors
-          }
-        }
+      function loadCardValues() {
+        return t.card('desc').then(function(card) {
+          return parseDescription(card.desc);
+        });
+      }
 
-        function renderFields() {
-          Promise.all([loadBoardFields(), loadCardValues()])
-            .then(function (results) {
-              var fields = results[0];
-              var values = results[1];
-              var container = document.getElementById('fieldsContainer');
-              container.innerHTML = '';
+      function saveCardValue(fieldId, value) {
+        return t.card('desc').then(function(card) {
+          var values = parseDescription(card.desc);
+          values[fieldId] = value;
+          var newDesc = formatDescription(card.desc, values);
+          return t.update({ desc: newDesc });
+        });
+      }
 
-              if (!fields || fields.length === 0) {
-                container.innerHTML = '<div class="empty-state">No custom fields configured. Open board settings to add fields.</div>';
-                safeSizeTo();
-                return;
+      function createInput(field, currentValue) {
+        var container = document.createElement('div');
+        container.className = 'card-field';
+
+        var label = document.createElement('label');
+        label.textContent = field.name;
+        container.appendChild(label);
+
+        var input;
+
+        switch (field.type) {
+          case 'checkbox':
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = !!currentValue;
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.checked).then(function () {
+                t.closePopup();
+              });
+            });
+            break;
+
+          case 'dropdown':
+            input = document.createElement('select');
+            var emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Select --';
+            input.appendChild(emptyOption);
+            (field.options || []).forEach(function (option) {
+              var opt = document.createElement('option');
+              opt.value = option.id;
+              opt.textContent = option.label;
+              if (currentValue === option.id) {
+                opt.selected = true;
               }
-
-              fields.forEach(function (field) {
-                var input = createInput(field, values[field.id]);
-                container.appendChild(input);
+              input.appendChild(opt);
+            });
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.closePopup();
               });
+            });
+            break;
 
-              safeSizeTo();
-            })
-            .catch(function (err) {
-              var container = document.getElementById('fieldsContainer');
-              container.innerHTML = '<div class="error">Failed to load fields: ' + (err.message || err) + '</div>';
-              safeSizeTo();
+          case 'date':
+            input = document.createElement('input');
+            input.type = 'date';
+            input.value = currentValue ? currentValue.substr(0, 10) : '';
+            input.addEventListener('change', function () {
+              var val = input.value ? new Date(input.value).toISOString() : null;
+              saveCardValue(field.id, val).then(function () {
+                t.closePopup();
+              });
+            });
+            break;
+
+          case 'number':
+            input = document.createElement('input');
+            input.type = 'number';
+            input.value = currentValue !== undefined && currentValue !== null ? currentValue : '';
+            input.addEventListener('change', function () {
+              var val = input.value === '' ? null : parseFloat(input.value);
+              saveCardValue(field.id, val).then(function () {
+                t.closePopup();
+              });
+            });
+            break;
+
+          case 'url':
+            input = document.createElement('input');
+            input.type = 'url';
+            input.placeholder = 'https://example.com';
+            input.value = currentValue || '';
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.closePopup();
+              });
+            });
+            break;
+
+          default: // text
+            input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue || '';
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.closePopup();
+              });
             });
         }
 
-        // Render immediately; also register for Trello-driven re-renders
-        renderFields();
-        t.render(renderFields);
-
-        // Fallback: if still loading after 5 seconds, show a message
-        setTimeout(function () {
-          var container = document.getElementById('fieldsContainer');
-          if (container && container.querySelector('.loading')) {
-            container.innerHTML = '<div class="error">Still loading. Try refreshing the card or disabling/re-enabling the Power-Up.</div>';
-            safeSizeTo();
-          }
-        }, 5000);
-      } catch (err) {
-        var container = document.getElementById('fieldsContainer');
-        container.innerHTML = '<div class="error">Initialization error: ' + (err.message || err) + '</div>';
+        container.appendChild(input);
+        return container;
       }
+
+      t.render(function () {
+        Promise.all([loadBoardFields(), loadCardValues()]).then(function (results) {
+          var fields = results[0];
+          var values = results[1];
+          var container = document.getElementById('fieldsContainer');
+          container.innerHTML = '';
+
+          if (fields.length === 0) {
+            container.innerHTML = '<div class="empty-state">No custom fields configured. Open board settings to add fields.</div>';
+            return;
+          }
+
+          fields.forEach(function (field) {
+            var input = createInput(field, values[field.id]);
+            container.appendChild(input);
+          });
+
+          t.sizeTo('#fieldsContainer').done();
+        });
+      });
     </script>
   </body>
 </html>

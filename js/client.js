@@ -1,11 +1,7 @@
 /* global TrelloPowerUp */
 
-var BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
-if (!BASE_URL.endsWith('/')) {
-  BASE_URL += '/';
-}
-var GRAY_ICON = BASE_URL + 'images/icon-gray.svg';
-var WHITE_ICON = BASE_URL + 'images/icon-white.svg';
+var GRAY_ICON = './images/icon-gray.svg';
+var WHITE_ICON = './images/icon-white.svg';
 
 var FIELD_TYPES = {
   text: { label: 'Text', default: '' },
@@ -22,9 +18,46 @@ function getBoardFields(t) {
   });
 }
 
+function parseDescription(desc) {
+  if (!desc) return {};
+  var match = desc.match(/<!-- CUSTOM_FIELDS_START -->([\s\S]*?)<!-- CUSTOM_FIELDS_END -->/);
+  if (!match) return {};
+  try {
+    return JSON.parse(match[1]);
+  } catch (e) {
+    return {};
+  }
+}
+
+function formatDescription(desc, fieldValues) {
+  var json = JSON.stringify(fieldValues, null, 2);
+  var block = '\n\n<!-- CUSTOM_FIELDS_START -->\n' + json + '\n<!-- CUSTOM_FIELDS_END -->\n';
+  
+  // Remove existing block if present
+  var cleaned = desc ? desc.replace(/<!-- CUSTOM_FIELDS_START -->[\s\S]*?<!-- CUSTOM_FIELDS_END -->/g, '').trim() : '';
+  
+  // Add formatted display
+  var display = '\n\n## Custom Fields\n\n';
+  Object.keys(fieldValues).forEach(function(fieldId) {
+    var value = fieldValues[fieldId];
+    if (value !== null && value !== undefined && value !== '') {
+      display += '- **' + fieldId + '**: ' + value + '\n';
+    }
+  });
+  
+  return cleaned + display + block;
+}
+
 function getCardValues(t) {
-  return t.get('card', 'shared', 'customFieldValues', {}).then(function (values) {
-    return values;
+  return t.card('desc').then(function(card) {
+    return parseDescription(card.desc);
+  });
+}
+
+function saveCardValues(t, values) {
+  return t.card('desc').then(function(card) {
+    var newDesc = formatDescription(card.desc, values);
+    return t.update({ desc: newDesc });
   });
 }
 
