@@ -84,16 +84,27 @@ TrelloPowerUp.initialize({
 
   'card-back-section': function (t, options) {
     return getBoardFields(t).then(function (fields) {
-      return t.signUrl(BASE_URL + 'card-back-section.html').then(function (signedUrl) {
-        return {
-          title: 'Custom Fields',
-          icon: GRAY_ICON,
-          content: {
-            type: 'iframe',
-            url: signedUrl,
-            height: Math.max(120, 40 + fields.length * 60)
-          }
-        };
+      var sectionUrl = BASE_URL + 'card-back-section.html';
+      var sectionConfig = {
+        title: 'Custom Fields',
+        icon: GRAY_ICON,
+        content: {
+          type: 'iframe',
+          url: sectionUrl,
+          height: Math.max(120, 40 + fields.length * 60)
+        }
+      };
+
+      if (typeof t.signUrl !== 'function') {
+        return sectionConfig;
+      }
+
+      return t.signUrl(sectionUrl).then(function (signedUrl) {
+        sectionConfig.content.url = signedUrl;
+        return sectionConfig;
+      }).catch(function (err) {
+        console.warn('t.signUrl failed, using unsigned URL:', err);
+        return sectionConfig;
       });
     });
   },
