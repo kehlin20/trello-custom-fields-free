@@ -25,6 +25,24 @@ function getCardValues(t) {
   });
 }
 
+function getBadgeColor(field, value) {
+  if (field.type === 'checkbox') {
+    return value ? 'green' : 'red';
+  }
+  switch (field.type) {
+    case 'number':
+      return 'sky';
+    case 'date':
+      return 'yellow';
+    case 'dropdown':
+      return 'pink';
+    case 'url':
+      return 'lime';
+    default:
+      return 'blue';
+  }
+}
+
 function formatFieldValue(field, value) {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -84,13 +102,13 @@ TrelloPowerUp.initialize({
       fields.forEach(function (field) {
         var display = formatFieldValue(field, values[field.id]);
         if (display) {
+          var color = getBadgeColor(field, values[field.id]);
           var badge = {
             text: field.name + ': ' + display,
+            title: field.name + ': ' + display,
+            color: color,
             refresh: 30
           };
-          if (field.type === 'checkbox' && values[field.id]) {
-            badge.color = 'green';
-          }
           badges.push(badge);
         }
       });
