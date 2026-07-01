@@ -1,0 +1,24 @@
+{
+  "name": "Custom Fields Free",
+  "icon": "./images/icon-gray.svg",
+  "author": "OpenCode",
+  "description": "Add custom fields with different data types to your Trello cards, just like the premium feature.",
+  "capabilities": [
+    "board-buttons",
+    "card-back-section",
+    "card-badges",
+    "callback",
+    "settings"
+  ],
+  "connectors": {
+    "callback": {
+      "url": "./callback.html"
+    }
+  },
+  "recommend": {
+    "cache": {
+      "maxage": 86400,
+      "private": false
+    }
+  }
+}

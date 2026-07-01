@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Custom Fields</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  </head>
+  <body>
+    <div id="fieldsContainer"></div>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+
+      function loadBoardFields() {
+        return t.get('board', 'shared', 'customFields', []);
+      }
+
+      function loadCardValues() {
+        return t.get('card', 'shared', 'customFieldValues', {});
+      }
+
+      function saveCardValue(fieldId, value) {
+        return loadCardValues().then(function (values) {
+          values[fieldId] = value;
+          return t.set('card', 'shared', 'customFieldValues', values);
+        });
+      }
+
+      function createInput(field, currentValue) {
+        var container = document.createElement('div');
+        container.className = 'card-field';
+
+        var label = document.createElement('label');
+        label.textContent = field.name;
+        container.appendChild(label);
+
+        var input;
+
+        switch (field.type) {
+          case 'checkbox':
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = !!currentValue;
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.checked).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+            break;
+
+          case 'dropdown':
+            input = document.createElement('select');
+            var emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '-- Select --';
+            input.appendChild(emptyOption);
+            (field.options || []).forEach(function (option) {
+              var opt = document.createElement('option');
+              opt.value = option.id;
+              opt.textContent = option.label;
+              if (currentValue === option.id) {
+                opt.selected = true;
+              }
+              input.appendChild(opt);
+            });
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+            break;
+
+          case 'date':
+            input = document.createElement('input');
+            input.type = 'date';
+            input.value = currentValue ? currentValue.substr(0, 10) : '';
+            input.addEventListener('change', function () {
+              var val = input.value ? new Date(input.value).toISOString() : null;
+              saveCardValue(field.id, val).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+            break;
+
+          case 'number':
+            input = document.createElement('input');
+            input.type = 'number';
+            input.value = currentValue !== undefined && currentValue !== null ? currentValue : '';
+            input.addEventListener('change', function () {
+              var val = input.value === '' ? null : parseFloat(input.value);
+              saveCardValue(field.id, val).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+            break;
+
+          case 'url':
+            input = document.createElement('input');
+            input.type = 'url';
+            input.placeholder = 'https://example.com';
+            input.value = currentValue || '';
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+            break;
+
+          default: // text
+            input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue || '';
+            input.addEventListener('change', function () {
+              saveCardValue(field.id, input.value).then(function () {
+                t.set('card', 'shared', 'customFieldValues_lastUpdate', Date.now());
+              });
+            });
+        }
+
+        container.appendChild(input);
+        return container;
+      }
+
+      t.render(function () {
+        Promise.all([loadBoardFields(), loadCardValues()]).then(function (results) {
+          var fields = results[0];
+          var values = results[1];
+          var container = document.getElementById('fieldsContainer');
+          container.innerHTML = '';
+
+          if (fields.length === 0) {
+            container.innerHTML = '<div class="empty-state">No custom fields configured. Open board settings to add fields.</div>';
+            return;
+          }
+
+          fields.forEach(function (field) {
+            var input = createInput(field, values[field.id]);
+            container.appendChild(input);
+          });
+
+          t.sizeTo('#fieldsContainer').done();
+        });
+      });
+    </script>
+  </body>
+</html>

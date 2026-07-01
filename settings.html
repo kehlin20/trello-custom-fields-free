@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Custom Fields Settings</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  </head>
+  <body>
+    <h2>Custom Fields</h2>
+    <p>Define custom fields for cards on this board.</p>
+
+    <div id="fieldsList"></div>
+
+    <h3>Add New Field</h3>
+    <label for="fieldName">Field Name</label>
+    <input type="text" id="fieldName" placeholder="e.g. Priority" />
+
+    <label for="fieldType">Field Type</label>
+    <select id="fieldType">
+      <option value="text">Text</option>
+      <option value="number">Number</option>
+      <option value="date">Date</option>
+      <option value="checkbox">Checkbox</option>
+      <option value="dropdown">Dropdown</option>
+      <option value="url">URL</option>
+    </select>
+
+    <div id="dropdownOptions" class="hidden">
+      <label>Dropdown Options</label>
+      <div id="optionsList"></div>
+      <button type="button" class="secondary" id="addOptionBtn">Add Option</button>
+    </div>
+
+    <div style="margin-top: 12px;">
+      <button type="button" class="primary" id="addFieldBtn">Add Field</button>
+    </div>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+
+      var FIELD_TYPES = {
+        text: { label: 'Text' },
+        number: { label: 'Number' },
+        date: { label: 'Date' },
+        checkbox: { label: 'Checkbox' },
+        dropdown: { label: 'Dropdown' },
+        url: { label: 'URL' }
+      };
+
+      function generateId() {
+        return 'cf_' + Math.random().toString(36).substr(2, 9);
+      }
+
+      function loadFields() {
+        return t.get('board', 'shared', 'customFields', []);
+      }
+
+      function saveFields(fields) {
+        return t.set('board', 'shared', 'customFields', fields);
+      }
+
+      function renderFields(fields) {
+        var container = document.getElementById('fieldsList');
+        container.innerHTML = '';
+
+        if (fields.length === 0) {
+          container.innerHTML = '<div class="empty-state">No custom fields yet. Add one above.</div>';
+          return;
+        }
+
+        fields.forEach(function (field, index) {
+          var el = document.createElement('div');
+          el.className = 'field-item';
+
+          var optionsText = '';
+          if (field.type === 'dropdown' && field.options && field.options.length) {
+            optionsText = '<div style="font-size:12px;color:#5e6c84;margin-top:4px;">Options: ' +
+              field.options.map(function (o) { return o.label; }).join(', ') + '</div>';
+          }
+
+          el.innerHTML =
+            '<div class="field-header">' +
+              '<div>' +
+                '<span class="field-name">' + escapeHtml(field.name) + '</span> ' +
+                '<span class="field-type">' + FIELD_TYPES[field.type].label + '</span>' +
+              '</div>' +
+              '<button class="danger" data-index="' + index + '">Remove</button>' +
+            '</div>' +
+            optionsText;
+
+          el.querySelector('button').addEventListener('click', function () {
+            fields.splice(index, 1);
+            saveFields(fields).then(function () {
+              renderFields(fields);
+            });
+          });
+
+          container.appendChild(el);
+        });
+      }
+
+      function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function renderOptionInputs() {
+        var container = document.getElementById('optionsList');
+        container.innerHTML = '';
+        var count = container.children.length;
+        var row = document.createElement('div');
+        row.className = 'option-row';
+        row.innerHTML = '<input type="text" placeholder="Option label" class="option-input" />';
+        container.appendChild(row);
+      }
+
+      document.getElementById('fieldType').addEventListener('change', function () {
+        var isDropdown = this.value === 'dropdown';
+        document.getElementById('dropdownOptions').classList.toggle('hidden', !isDropdown);
+        if (isDropdown) {
+          renderOptionInputs();
+        }
+      });
+
+      document.getElementById('addOptionBtn').addEventListener('click', function () {
+        var container = document.getElementById('optionsList');
+        var row = document.createElement('div');
+        row.className = 'option-row';
+        row.innerHTML =
+          '<input type="text" placeholder="Option label" class="option-input" />' +
+          '<button type="button" class="danger remove-option">Remove</button>';
+        row.querySelector('.remove-option').addEventListener('click', function () {
+          row.remove();
+        });
+        container.appendChild(row);
+      });
+
+      document.getElementById('addFieldBtn').addEventListener('click', function () {
+        var nameInput = document.getElementById('fieldName');
+        var typeInput = document.getElementById('fieldType');
+        var name = nameInput.value.trim();
+        var type = typeInput.value;
+
+        if (!name) {
+          nameInput.style.borderColor = '#c0392b';
+          return;
+        }
+        nameInput.style.borderColor = '';
+
+        loadFields().then(function (fields) {
+          var newField = {
+            id: generateId(),
+            name: name,
+            type: type
+          };
+
+          if (type === 'dropdown') {
+            var optionInputs = document.querySelectorAll('.option-input');
+            var options = [];
+            optionInputs.forEach(function (input) {
+              var label = input.value.trim();
+              if (label) {
+                options.push({ id: generateId(), label: label });
+              }
+            });
+            if (options.length === 0) {
+              alert('Please add at least one dropdown option.');
+              return;
+            }
+            newField.options = options;
+          }
+
+          fields.push(newField);
+          return saveFields(fields).then(function () {
+            nameInput.value = '';
+            typeInput.value = 'text';
+            document.getElementById('dropdownOptions').classList.add('hidden');
+            document.getElementById('optionsList').innerHTML = '';
+            renderFields(fields);
+          });
+        });
+      });
+
+      t.render(function () {
+        loadFields().then(renderFields);
+      });
+    </script>
+  </body>
+</html>
