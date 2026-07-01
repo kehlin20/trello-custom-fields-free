@@ -68,6 +68,21 @@ function formatFieldValue(field, value) {
 }
 
 TrelloPowerUp.initialize({
+  'card-buttons': function (t, options) {
+    return [{
+      icon: GRAY_ICON,
+      text: 'Custom Fields',
+      condition: 'edit',
+      callback: function (t) {
+        return t.popup({
+          title: 'Edit Custom Fields',
+          url: './card-back-section.html',
+          height: 400
+        });
+      }
+    }];
+  },
+
   'board-buttons': function (t, options) {
     return [{
       icon: GRAY_ICON,

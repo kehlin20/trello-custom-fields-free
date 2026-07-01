@@ -5,6 +5,7 @@
   "description": "Add custom fields with different data types to your Trello cards, just like the premium feature.",
   "capabilities": [
     "board-buttons",
+    "card-buttons",
     "card-back-section",
     "card-badges",
     "card-detail-badges",
