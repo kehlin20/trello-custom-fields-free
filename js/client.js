@@ -124,6 +124,37 @@ TrelloPowerUp.initialize({
     });
   },
 
+  'card-detail-badges': function (t, options) {
+    return Promise.all([getBoardFields(t), getCardValues(t)]).then(function (results) {
+      var fields = results[0];
+      var values = results[1];
+      var badges = [];
+
+      fields.forEach(function (field) {
+        var rawValue = values[field.id];
+        var display = formatFieldValue(field, rawValue);
+        var color = getBadgeColor(field, rawValue);
+        var badgeText = display ? (field.name + ': ' + display) : field.name;
+
+        badges.push({
+          text: badgeText,
+          title: 'Click to edit ' + field.name,
+          color: color,
+          callback: function (t) {
+            return t.popup({
+              title: 'Edit ' + field.name,
+              url: BASE_URL + 'edit-field.html',
+              args: { fieldId: field.id },
+              height: 220
+            });
+          }
+        });
+      });
+
+      return badges;
+    });
+  },
+
   'show-settings': function (t, options) {
     return t.popup({
       title: 'Custom Fields Settings',
