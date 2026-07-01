@@ -183,7 +183,7 @@
           return container;
         }
 
-        t.render(function () {
+        function renderFields() {
           Promise.all([loadBoardFields(), loadCardValues()])
             .then(function (results) {
               var fields = results[0];
@@ -209,7 +209,11 @@
               container.innerHTML = '<div class="error">Failed to load fields: ' + (err.message || err) + '</div>';
               t.sizeTo('#fieldsContainer').done();
             });
-        });
+        }
+
+        // Render immediately; also register for Trello-driven re-renders
+        renderFields();
+        t.render(renderFields);
       } catch (err) {
         var container = document.getElementById('fieldsContainer');
         container.innerHTML = '<div class="error">Initialization error: ' + (err.message || err) + '</div>';
