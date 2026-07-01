@@ -84,8 +84,11 @@ TrelloPowerUp.initialize({
 
   'card-back-section': function (t, options) {
     return getBoardFields(t).then(function (fields) {
-      var sectionUrl = BASE_URL + 'card-back-section.html';
-      var sectionConfig = {
+      var sectionUrl = './card-back-section.html';
+      if (typeof t.signUrl === 'function') {
+        sectionUrl = t.signUrl(sectionUrl);
+      }
+      return {
         title: 'Custom Fields',
         icon: GRAY_ICON,
         content: {
@@ -94,18 +97,6 @@ TrelloPowerUp.initialize({
           height: Math.max(120, 40 + fields.length * 60)
         }
       };
-
-      if (typeof t.signUrl !== 'function') {
-        return sectionConfig;
-      }
-
-      return t.signUrl(sectionUrl).then(function (signedUrl) {
-        sectionConfig.content.url = signedUrl;
-        return sectionConfig;
-      }).catch(function (err) {
-        console.warn('t.signUrl failed, using unsigned URL:', err);
-        return sectionConfig;
-      });
     });
   },
 
