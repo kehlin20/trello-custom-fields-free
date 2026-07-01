@@ -1,6 +1,9 @@
 /* global TrelloPowerUp */
 
-var BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+var BASE_URL = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
+if (!BASE_URL.endsWith('/')) {
+  BASE_URL += '/';
+}
 var GRAY_ICON = BASE_URL + 'images/icon-gray.svg';
 var WHITE_ICON = BASE_URL + 'images/icon-white.svg';
 

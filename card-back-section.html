@@ -183,6 +183,17 @@
           return container;
         }
 
+        function safeSizeTo() {
+          try {
+            var promise = t.sizeTo('#fieldsContainer');
+            if (promise && typeof promise.done === 'function') {
+              promise.done();
+            }
+          } catch (e) {
+            // ignore sizing errors
+          }
+        }
+
         function renderFields() {
           Promise.all([loadBoardFields(), loadCardValues()])
             .then(function (results) {
@@ -193,7 +204,7 @@
 
               if (!fields || fields.length === 0) {
                 container.innerHTML = '<div class="empty-state">No custom fields configured. Open board settings to add fields.</div>';
-                t.sizeTo('#fieldsContainer').done();
+                safeSizeTo();
                 return;
               }
 
@@ -202,18 +213,27 @@
                 container.appendChild(input);
               });
 
-              t.sizeTo('#fieldsContainer').done();
+              safeSizeTo();
             })
             .catch(function (err) {
               var container = document.getElementById('fieldsContainer');
               container.innerHTML = '<div class="error">Failed to load fields: ' + (err.message || err) + '</div>';
-              t.sizeTo('#fieldsContainer').done();
+              safeSizeTo();
             });
         }
 
         // Render immediately; also register for Trello-driven re-renders
         renderFields();
         t.render(renderFields);
+
+        // Fallback: if still loading after 5 seconds, show a message
+        setTimeout(function () {
+          var container = document.getElementById('fieldsContainer');
+          if (container && container.querySelector('.loading')) {
+            container.innerHTML = '<div class="error">Still loading. Try refreshing the card or disabling/re-enabling the Power-Up.</div>';
+            safeSizeTo();
+          }
+        }, 5000);
       } catch (err) {
         var container = document.getElementById('fieldsContainer');
         container.innerHTML = '<div class="error">Initialization error: ' + (err.message || err) + '</div>';
